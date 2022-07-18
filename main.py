@@ -22,42 +22,83 @@ import art
 from colors import green
 import player
 
+location = "world_map"
+
 def clear():
+  '''Clears the screen'''
   print("\033[H\033[J",end="")
 
+def pause():
+  input("\033[90m<press enter to continue>\033[0m")
+
+def location_nick(input):
+  '''Finds the location via list of nicknames'''
+  for l_key, l_properties in art.places.items():
+    for property in l_properties:
+      if property == "names":
+        nicknames = art.places[l_key][property]
+        if input in nicknames:
+          return l_key
+
 def main():
+  '''Main menu'''
   error = False
   while True:
+    clear()
     print(f"\033[31;40;1m{art.top_bar}")
     print(f"{art.logo}\033[0m")
     print("\033[93ma game by FireIsGood                                    \033[33mtype 'main()' if the game crashes\033[0m\n")
-    print(f'                       {green("N")}ew Game           {green("L")}oad Game           {green("S")}ettings\n')
+    print(f'                       {green("New Game           Load Game           Settings")}\n')
     if error == True:
       print("Error, try again.")
     selection = input().lower()
     if selection in ("n", "new", "new game"):
       clear()
-      print("New game!")
       character_creator()
-      selection = input().lower()
     elif selection in ("l", "load", "load game"):
       clear()
-      print("Load game!")
-      selection = input().lower()
+      map()
     elif selection in ("s", "settings"):
       clear()
       print("Settings!")
       selection = input().lower()
     else:
-      clear()
       error = True
 
 def character_creator():
+  '''Character creation script. Loads on New Game'''
   print("Welcome to the world of Triple Lord.")
-  print("What is your name?")
-  input("\0")
+  player.player["name"] = "\033[96m" + input('What is your name? \033[96m') + "\033[0m"
+  print("\033[0m",end="")
+  print(f"{player.player['name']}? That's a good name.")
+  if "Malkuth" in player.player['name']:
+    print("\033[95mDebug Mode Activated\033[0m")
+    # debug = True
+  map()
 
+def map():
+  '''map state'''
+  global location
+  error = False
+  travel_input = ""
+  while True:
+    clear()
+    print(art.top_bar)
+    print(art.places[location]["art"])
+    if error == True:
+      print(f"You cannot go to {travel_input.title()} from here.")
+    
+    # Travel logic
+    if art.places[location]["mode"] == "travel":
+      travel_input = input().lower()
+      travel_location = location_nick(travel_input)
+      if travel_location in art.places[location]["connections"]:
+        print(f"You went to the {travel_input.title()}.")
+        location = travel_location
+        error = False
+        pause()
+      else:
+        error = True
 
-      
 # Start Game
 main()
