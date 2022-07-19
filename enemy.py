@@ -22,6 +22,8 @@ stats = {
     "def": [1, 10],
     "def_line": f"{red('Hedge Peon')} rolls up.",
     "hp": 35,
+    "exp": [1,4],
+    "gold": [4,10],
   },
   
     "bad_flower": {
@@ -40,6 +42,8 @@ stats = {
     "def": [0, 8],
     "def_line": f"{red('Bad Flower')} ducks for cover.",
     "hp": 25,
+    "exp": [2,5],
+    "gold": [2,8],
   },
   
 }

@@ -15,4 +15,7 @@ def blue(input):
   return f"\033[94m{input}\033[0m"
 
 def yellow(input):
-  return f"\033[33m{input}\033[0m"
+  return f"\033[93m{input}\033[0m"
+
+def purple(input):
+  return f"\033[95m{input}\033[0m"

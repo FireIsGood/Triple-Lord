@@ -1,4 +1,4 @@
-from colors import green
+from colors import green, menuclr
 
 bar = ">==-===-===-==<>==-===-===-==<>==-===-===-==<>==-===-===-==<>==-===-===-==<>==-===-===-==<\033[0m"
 bar_title = f"\033[31;40m{bar}\033[0m"
@@ -45,7 +45,27 @@ The town is bustling.
       Some {green("N")}erd   The {green("I")}nn
     ''',
     "mode": "travel",
-    "connections": ["world_map"],
+    "connections": ["world_map", "inn"],
+  },
+  
+  "inn": {
+    "display_name": "Town Inn",
+    "names": ["inn", "the inn", "i"],
+    "art": f'''You can return to the {green("T")}own
+The town inn feels slightly warmer than the outside.
+      |   _                 _ _   |
+      |  |r|       o       | | |  |
+      |  |_|  ____/|\____  |_|_|  |
+     /       |___________|         \\
+    / ,                       -T-   \\
+    --------       ------------------
+    ''',
+    "mode": "event",
+    "actions": {
+      "text": f'|  {menuclr("R")}est',
+      "functions": "rest",
+  },
+    "connections": ["town"],
   },
   
   "forest": {
@@ -61,7 +81,11 @@ You are in a Forest\033[32m
     uwwuwuwwwu\033[33m========\033[32mwuwwuuwuuuwuwuuuwuuwuuw\033[0m
     ''',
   "mode": "adventure",
+  "actions": {
+    "text": f'|  {menuclr("A")}dventure',
+    "functions": "adventure",
+  },
+  "battle_chance": 70,
   "connections": ["world_map"],
-  "battle_chance": 30,
   },
 }

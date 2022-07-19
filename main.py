@@ -5,10 +5,10 @@
 # Stats based on equipment and level
 # Level up based on exp from defeating enemies, small benefit
 # Buy gear from shops, large benefit
-# Win lord contracts from fighting bosses, pick one type
+# Cores are equipped to allow you to use specific magic
 # Fight enemies!
 #  damage is atk - def
-#  use stamina per attack with diff taking more
+#  use stamina per attack with actions taking more for big effect
 #  health restores available at town
 #  or use potions between combat
 # Magic system
@@ -16,18 +16,15 @@
 #  mana restores at town
 #  or use potions between combat
 # DEFEAT THE TRIPLE LORD
-# todo: make the game
 import random
+import copy
 import art
-from colors import red, blue, green, yellow, nameclr, menuclr, menu_color
+from colors import red, blue, yellow, purple, nameclr, menuclr, menu_color
 from misc import pause, clear
 import player
 import enemy
 
 location = "world_map"
-
-
-  
 
 def location_nick(input):
   '''Finds the location via list of nicknames'''
@@ -71,23 +68,34 @@ Good luck!
   
 def menu_action():
   print(f'{menuclr("T")}ravel {menuclr("S")}tats  ',end="")
-  # Extra prompts if on an adventure
-  if game_mode == "adventure":
-    print(f'|  {menuclr("A")}dventure',end="")
+  # Extra prompts
+  if "actions" in art.places[location]:
+    print(art.places[location]["actions"]["text"],end="")
+    extra_actions = art.places[location]["actions"]["functions"]
 
   # Menu input and parsing
   menu_input = input(f"\n\033[{menu_color}m").lower()
   print("\033[0m",end="")
+
+  # Default actions
   if menu_input in ["t", "travel"]:
     travel()
   elif menu_input in ["s", "stats"]:
     stats_menu()
-  elif menu_input in ["a", "adventure"] and game_mode == "adventure":
+
+  # Extra actions
+  elif menu_input in ["a", "adventure"] and "adventure" in extra_actions:
     if player.stats["hp"] > 0:
       adventure()
     else:
       print("You are too badly hurt to adventure! Rest at an inn.")
       pause()
+  elif menu_input in ["r", "rest"] and "rest" in extra_actions:
+    player.refresh()
+    print("You rested and recovered all damage!")
+    pause()
+
+  # Catch errors
   else:
     if menu_input == "":
       print(f"Please type a menu input")
@@ -111,7 +119,7 @@ def travel():
     
 def stats():
   print(f'''\
-{nameclr(player.stats["name"])} {yellow(str(player.stats["gold"]) + " Gold")} 
+{nameclr(player.stats["name"])} {purple("Lv." + str(player.stats["level"]))} 
 Hp: {player.stats["hp"]}/{player.stats["max_hp"]}
 Sp: {player.stats["sp"]}/{player.stats["max_sp"]}
 Mp: {player.stats["mp"]}/{player.stats["max_mp"]}\
@@ -124,37 +132,43 @@ def stats_menu():
     clear()
     print(art.bar)
     stats()
-    print(f'''
+    print(f'''\
+{purple(str(player.stats["exp"]) + " Experience")}
+{yellow(str(player.stats["gold"]) + " Gold")}
+
 \033[1mStats:\033[0m
 Atk: {player.stats["atk"]} ({player.stats["base_atk"]})
 Def: {player.stats["def"]} ({player.stats["base_def"]})
 Mag: {player.stats["mag"]} ({player.stats["base_mag"]})
           
 \033[1mEquipment:\033[0m
-Body:   {player.coolname(player.stats["equip_body"])}
 Weapon: {player.coolname(player.stats["equip_weapon"])}
+Body:   {player.coolname(player.stats["equip_body"])}
 Code:   {player.coolname(player.stats["equip_code"])}
 ''')
     print(art.bar)
-  
-    def print_equip_types():
-      for item in player.equip_types:
-        green(print(item))
-    
     print(f'{menuclr("C")}lose Menu  {menuclr("E")}quip  {menuclr("U")}nequip  {menuclr("I")}nspect',end="")
     stats_input = input(f"\n\033[{menu_color}m").lower()
     print("\033[0m",end="")
     
     # equip an item to a slot
     if stats_input in ["e", "equip"]:
-      print_equip_types()
-      equip_item = input("Equip which slot? ")
-      player.equip(equip_item)
+      player.print_equip_types()
+      equip_slot = player.from_nick(input("Equip which slot? \033[92m"))
+      print("\033[0m",end="")
+      if equip_slot in player.equip_types:
+        player.print_items_from_slot(equip_slot)
+        equip_item = input("Equip which item? \033[92m")
+        print("\033[0m",end="")
+        player.equip(equip_item)
+      else:
+        print(f"{equip_slot} is not a valid slot")
 
     # Unequip an item from a slot
     elif stats_input in ["u", "unequip"]:
-      print_equip_types()
-      unequip_item = input("Unequip which slot? ")
+      player.print_equip_types()
+      unequip_item = player.from_nick(input("Unequip which slot? \033[92m"))
+      print("\033[0m",end="")
       player.unequip(unequip_item)
       
     # Inspect an item in the inventory
@@ -165,7 +179,6 @@ Code:   {player.coolname(player.stats["equip_code"])}
       inspect_item = input("Inspect what item? \033[92m")
       print("\033[0m",end="")
       player.inspect(inspect_item)
-      pause()
     
     # Close menu
     elif stats_input in ["c", "close", "close menu"]:
@@ -192,7 +205,7 @@ def adventure():
   
 def battle(name):
   battle_finished = False
-  current_enemy = enemy.stats[name]
+  current_enemy = copy.deepcopy(enemy.stats[name])
   while battle_finished == False:
     player_temp_defense = 0
     
@@ -214,13 +227,13 @@ def battle(name):
       # Draw UI
       clear()
       print(art.bar)
-      print(f'You encounter {current_enemy["name"]}!!')
+      print(f'You encounter {current_enemy["name"]} {purple("Lv." + str(current_enemy["level"]))}')
       print(current_enemy["art"])
       print(f'Hp: {current_enemy["hp"]}/{current_enemy["max_hp"]}')
       
       enemy_prediction = f'{current_enemy["name"]} is going to {enemy_intention}'
       if "Attack" in enemy_intention:
-        predicted_damage = current_enemy_attack - player_stats["def"]
+        predicted_damage = current_enemy_attack - player.stats["def"]
         enemy_prediction += f" for {current_enemy_attack} damage, dealing {predicted_damage} damage"
       print(enemy_prediction)
       
@@ -241,12 +254,10 @@ def battle(name):
           player_has_acted = True
           player_damage_final = max(player.stats["atk"] - current_enemy_defense, 1) # Player minimum 1 damage
           print(f"You attack, dealing {player_damage_final} damage!")
-          current_enemy["hp"] = current_enemy["hp"] - player_damage_final
-          if current_enemy["hp"] <= 0:
-            battle_finished = True
-            print(f"\033[1mYou defeated {current_enemy['name']}\033[0m")
+          current_enemy["hp"] = max(current_enemy["hp"] - player_damage_final,0)
         else:
           print("You are too tired to attack.")
+          pause()
   
       # Defend command
       elif battle_input == "d":
@@ -275,6 +286,20 @@ def battle(name):
           print(f"{battle_input} is not a valid battle command")
         pause()
     
+    #Check if you won
+    if current_enemy["hp"] <= 0:
+      battle_finished = True
+      exp_gained = random.randint(current_enemy["exp"][0],current_enemy["exp"][1])
+      gold_gained = random.randint(current_enemy["gold"][0],current_enemy["gold"][1])
+      player.stats["exp"] = player.stats["exp"] + exp_gained
+      player.stats["gold"] = player.stats["gold"] + gold_gained
+      print(f"\033[1mYou defeated {current_enemy['name']}!\033[0m")
+      print(f"You gained {exp_gained} exp and {gold_gained} gold.")
+      current_level = player.stats["level"]
+      player.recalculate()
+      if player.stats["level"] > current_level:
+        print(yellow("You leveled up!"))
+    
     # Resolve enemy damage
     if battle_finished == False:
       if enemy_action == "atk":
@@ -283,12 +308,14 @@ def battle(name):
           print(f'{current_enemy["atk_line"][current_enemy_attack_id]}')
           print(f"You took {red(damage_player_final)} damage!")
           player.damage(damage_player_final)
+          pause()
           if player.stats["hp"] <= 0:
             battle_finished == True
             print("You were defeated!")
         else:
           print(f'{current_enemy["name"]} bounced off harmlessly!')
-      pause()
+          pause()
+
     
   pause()
 
@@ -328,6 +355,7 @@ def game():
   '''Game State. Draws the art for travel and adventure modes'''
   global location
   global game_mode
+  player.recalculate() # recalculate stats
   while True: # Loop meny actions
     clear()
     print(art.bar)
@@ -337,10 +365,7 @@ def game():
     
     # Menu logic
     game_mode = art.places[location]["mode"]
-    if game_mode == "travel":
-      menu_action()
-    elif game_mode == "adventure":
-      menu_action()
+    menu_action()
 
 
 
