@@ -19,18 +19,14 @@
 # todo: make the game
 import random
 import art
-from colors import red, blue, yellow, nameclr, menuclr, menu_color
+from colors import red, blue, green, yellow, nameclr, menuclr, menu_color
+from misc import pause, clear
 import player
 import enemy
 
 location = "world_map"
 
-def clear():
-  '''Clears the screen'''
-  print("\033[H\033[J",end="")
 
-def pause():
-  input("\033[90m<press enter to continue>\033[0m")
   
 
 def location_nick(input):
@@ -82,11 +78,11 @@ def menu_action():
   # Menu input and parsing
   menu_input = input(f"\n\033[{menu_color}m").lower()
   print("\033[0m",end="")
-  if menu_input == "t":
+  if menu_input in ["t", "travel"]:
     travel()
-  elif menu_input == "s":
+  elif menu_input in ["s", "stats"]:
     stats_menu()
-  elif menu_input == "a" and game_mode == "adventure":
+  elif menu_input in ["a", "adventure"] and game_mode == "adventure":
     if player.stats["hp"] > 0:
       adventure()
     else:
@@ -112,21 +108,77 @@ def travel():
   else:
     print(f"You cannot go to {travel_input.title()} from here.")
     pause()
-
-def stats_menu():
-  clear()
-  print(art.bar)
+    
+def stats():
   print(f'''\
 {nameclr(player.stats["name"])} {yellow(str(player.stats["gold"]) + " Gold")} 
 Hp: {player.stats["hp"]}/{player.stats["max_hp"]}
 Sp: {player.stats["sp"]}/{player.stats["max_sp"]}
-Mp: {player.stats["mp"]}/{player.stats["max_mp"]}
+Mp: {player.stats["mp"]}/{player.stats["max_mp"]}\
+''')
+  
+def stats_menu():
+  player.recalculate()
+  exit_menu = False
+  while exit_menu == False:
+    clear()
+    print(art.bar)
+    stats()
+    print(f'''
+\033[1mStats:\033[0m
+Atk: {player.stats["atk"]} ({player.stats["base_atk"]})
+Def: {player.stats["def"]} ({player.stats["base_def"]})
+Mag: {player.stats["mag"]} ({player.stats["base_mag"]})
+          
+\033[1mEquipment:\033[0m
+Body:   {player.coolname(player.stats["equip_body"])}
+Weapon: {player.coolname(player.stats["equip_weapon"])}
+Code:   {player.coolname(player.stats["equip_code"])}
+''')
+    print(art.bar)
+  
+    def print_equip_types():
+      for item in player.equip_types:
+        green(print(item))
+    
+    print(f'{menuclr("C")}lose Menu  {menuclr("E")}quip  {menuclr("U")}nequip  {menuclr("I")}nspect',end="")
+    stats_input = input(f"\n\033[{menu_color}m").lower()
+    print("\033[0m",end="")
+    
+    # equip an item to a slot
+    if stats_input in ["e", "equip"]:
+      print_equip_types()
+      equip_item = input("Equip which slot? ")
+      player.equip(equip_item)
 
-Atk: {player.stats["atk"]}
-Def: {player.stats["def"]}
-Mag: {player.stats["mag"]}
-  ''')
-  pause()
+    # Unequip an item from a slot
+    elif stats_input in ["u", "unequip"]:
+      print_equip_types()
+      unequip_item = input("Unequip which slot? ")
+      player.unequip(unequip_item)
+      
+    # Inspect an item in the inventory
+    elif stats_input in ["i", "inspect"]:
+      print("Inventory:")
+      for item in player.inventory:
+        print(player.coolname(item))
+      inspect_item = input("Inspect what item? \033[92m")
+      print("\033[0m",end="")
+      player.inspect(inspect_item)
+      pause()
+    
+    # Close menu
+    elif stats_input in ["c", "close", "close menu"]:
+      exit_menu = True
+    
+    else:
+      if stats_input == "":
+        print(f"Please type a menu input")
+      else:
+        print(f"{stats_input} is not a valid menu input")
+      pause()
+    
+    player.recalculate()
 
 def adventure():
   global location
@@ -141,7 +193,6 @@ def adventure():
 def battle(name):
   battle_finished = False
   current_enemy = enemy.stats[name]
-  player_stats = player.stats
   while battle_finished == False:
     player_temp_defense = 0
     
@@ -240,20 +291,10 @@ def battle(name):
       pause()
     
   pause()
-    
+
   
-def stats():
-  print(f'''\
-{nameclr(player.stats["name"])} {yellow(str(player.stats["gold"]) + " Gold")} 
-Hp: {player.stats["hp"]}/{player.stats["max_hp"]}
-Sp: {player.stats["sp"]}/{player.stats["max_sp"]}
-Mp: {player.stats["mp"]}/{player.stats["max_mp"]}\
-''')
-
-
 # Main game logic
 # This is the main menu
-
 def main():
   '''Opens the Main Menu'''
   error = False
